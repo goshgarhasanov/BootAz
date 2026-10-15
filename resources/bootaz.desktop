@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=BootAz
+GenericName=Bootable USB creator
+GenericName[az]=Yüklənə bilən USB yaradıcısı
+Comment=Make bootable USB drives from Windows and Linux images
+Comment[az]=Windows və Linux obrazlarından yüklənə bilən USB disklər
+Exec=@DIR@/run_gui.sh %f
+Icon=bootaz
+Terminal=false
+Categories=System;Utility;
+Keywords=usb;iso;boot;flash;rufus;windows;linux;
+MimeType=application/x-iso9660-image;application/x-raw-disk-image;application/vnd.efi.iso;
+StartupWMClass=BootAz

@@ -1,0 +1,2 @@
+// Windows resources: the icon shown in Explorer and the taskbar.
+IDI_ICON1 ICON "bootaz.ico"

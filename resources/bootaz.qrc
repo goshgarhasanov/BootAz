@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/bootaz">
+    <file>check.png</file>
+  </qresource>
+</RCC>

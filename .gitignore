@@ -1,0 +1,7 @@
+build/
+build-*/
+*.user
+*.swp
+.vscode/
+.idea/
+/tests/data/

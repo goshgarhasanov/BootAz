@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build qt6-base-dev zlib1g-dev liblzma-dev libzstd-dev \
+               libbz2-dev xorriso mtools dosfstools zstd python3-venv
+          python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -q pycdlib
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Test images
+        run: PYTHON=/tmp/venv/bin/python tests/make_test_images.sh "$RUNNER_TEMP/data"
+      - name: Tests (core, translations, GUI engine)
+        run: |
+          export BOOTAZ_TEST_DATA="$RUNNER_TEMP/data"
+          cmake -S . -B build
+          ctest --test-dir build --output-on-failure
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bootaz-linux
+          path: |
+            build/BootAz
+            build/bootaz-cli
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-qt6-base mingw-w64-ucrt-x86_64-zlib mingw-w64-ucrt-x86_64-xz
+            mingw-w64-ucrt-x86_64-zstd mingw-w64-ucrt-x86_64-bzip2 mingw-w64-ucrt-x86_64-python
+      - name: Build
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+      - name: Tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp build/BootAz.exe build/bootaz-cli.exe dist/
+          windeployqt6 --release --no-translations dist/BootAz.exe || windeployqt --release --no-translations dist/BootAz.exe
+          for dll in $(ldd dist/*.exe | grep -i ucrt64 | awk '{print $3}' | sort -u); do cp -n "$dll" dist/; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bootaz-windows
+          path: dist
