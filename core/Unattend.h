@@ -28,5 +28,6 @@ std::string makeAutounattend(const WindowsOptions& o);
 std::string systemWindowsLocale();
 bool validAccountName(const std::string& name);
 bool validComputerName(const std::string& name);
+bool validLocale(const std::string& locale);   // "az-Latn-AZ"
 
 } // namespace bootaz

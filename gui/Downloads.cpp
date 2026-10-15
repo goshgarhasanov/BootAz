@@ -336,7 +336,14 @@ void DownloadDialog::startSelected()
 void DownloadDialog::download(const ResolvedImage& r)
 {
     QDir().mkpath(folder_->text());
-    const QString path = QDir(folder_->text()).filePath(r.fileName);
+    // The name comes from the project's server: keep only a plain file name.
+    const QString name = QFileInfo(r.fileName).fileName();
+    if (name.isEmpty() || name.startsWith('.') || !name.endsWith(".iso", Qt::CaseInsensitive)) {
+        setBusy(false);
+        status_->setText(L("Unknown image"));
+        return;
+    }
+    const QString path = QDir(folder_->text()).filePath(name);
     if (QFileInfo::exists(path) && !r.sha256.isEmpty()) {
         status_->setText(L("The file is already there; checking it…"));
         verify(path, r.sha256);

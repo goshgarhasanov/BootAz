@@ -80,8 +80,22 @@ const char* IsoImage::treeName() const
     }
 }
 
+// A name from the image must stay one plain path component: no "..", no separators, no control
+// characters. A crafted image could otherwise make a copy land outside the target drive.
+static bool safeName(const std::string& n)
+{
+    if (n.empty() || n == "." || n == ".." || n.size() > 1024)
+        return false;
+    for (unsigned char c : n)
+        if (c < 0x20 || c == '/' || c == '\\')
+            return false;
+    return true;
+}
+
 int IsoImage::addEntry(IsoEntry e)
 {
+    if (entries_.size() >= 2000000)
+        throw Error(T("The image has too many files"));
     entries_.push_back(std::move(e));
     return int(entries_.size() - 1);
 }
@@ -346,7 +360,7 @@ void IsoImage::parseIsoDir(int parent, uint32_t lba, uint32_t size, bool joliet,
                 e.dir = false;
             }
         }
-        if (relocated || e.name.empty())
+        if (relocated || !safeName(e.name))
             continue;
 
         if (havePending && (pending.name != e.name || e.dir)) {
@@ -536,7 +550,7 @@ void IsoImage::udfParseDir(int parent, const IsoEntry& dirEntry, uint16_t partRe
             continue;
         if (chars & 0x04)   // deleted
             continue;
-        if (name.empty())
+        if (!safeName(name))
             continue;
 
         IsoEntry e;

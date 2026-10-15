@@ -131,6 +131,11 @@ bool osCanFormat(const std::string& fs);
 
 // Files created as root (pkexec / sudo) are handed to the user who started BootAz. No-op on Windows.
 void handOverToUser(const std::string& path);
+// A new, empty folder only this user can use (mkdtemp); throws Error.
+std::string makePrivateTempDir(const std::string& prefix);
+// When running with elevated rights on behalf of a user: may that user write `path`? (Image files
+// as targets and saved images must not let the elevated job overwrite system files.)
+bool invokingUserMayWrite(const std::string& path, std::string* why = nullptr);
 
 // Runs an external program (mkfs, mount, ...). Returns the exit code; output goes to the log.
 int runProgram(const std::vector<std::string>& argv, const JobContext& ctx, std::string* output = nullptr);

@@ -128,6 +128,17 @@ static void testImages(const std::string& dir)
         CHECK(!info.efiLoaders.empty());
         CHECK(info.elToritoEfi);
     }
+    if (have("evil.iso")) {   // names with ".." or "/" must never reach the copy
+        IsoImage iso;
+        CHECK(iso.open(path("evil.iso")));
+        bool clean = true;
+        iso.walk([&](const IsoEntry& e) {
+            if (e.name.find('/') != std::string::npos || e.name == ".." || e.path.find("/../") != std::string::npos)
+                clean = false;
+        });
+        CHECK(clean);
+        CHECK(iso.find("/Deep/Dir/With/Long Name Folder/CamelCase-File.txt") >= 0);
+    }
     if (have("joliet.iso")) {
         IsoImage iso;
         CHECK(iso.open(path("joliet.iso")));

@@ -89,6 +89,10 @@ extern const std::pair<const char*, const char*> kAzerbaijani[] = {
     {"xz compression failed", "xz ilə sıxma alınmadı"},
     {"zstd compression failed", "zstd ilə sıxma alınmadı"},
     {"Cannot read the image", "Obraz oxunmadı"},
+    {"The image has too many files", "Obrazda həddən artıq çox fayl var"},
+    {"%1 is not your own file; choose a file in your own folders", "%1 sizin öz faylınız deyil; öz qovluqlarınızdan fayl seçin"},
+    {"%1 is not your own folder; choose a folder in your home", "%1 sizin öz qovluğunuz deyil; ev qovluğunuzdan bir qovluq seçin"},
+    {"The regional format is not valid (for example az-Latn-AZ)", "Regional format düzgün deyil (məsələn az-Latn-AZ)"},
 
     // ---- drives
     {"Unsupported file system: %1", "Dəstəklənməyən fayl sistemi: %1"},

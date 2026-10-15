@@ -116,6 +116,8 @@ Yalnız CLI-ı Linux-dan Windows üçün də build etmək olar: `cmake -S . -B b
 - Obraz analizi və yükləmə administrator hüququ olmadan işləyir. Proqram heç bir məlumatı heç yerə göndərmir;
   internet yalnız "Obraz yüklə" pəncərəsində rəsmi saytlara müraciət üçün istifadə olunur.
 
+Tam test, kod, təhlükəsizlik və gələcək review: [docs/REVIEW.md](docs/REVIEW.md).
+
 ## Lisenziya və təşəkkür
 
 GPL-3.0. ms-sys yükləmə kodu və UEFI:NTFS sürücüləri [Rufus](https://github.com/pbatard/rufus) layihəsindən

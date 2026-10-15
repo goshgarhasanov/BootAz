@@ -66,6 +66,16 @@ bool validAccountName(const std::string& n)
     return trim(n) == n && n.back() != '.';
 }
 
+bool validLocale(const std::string& l)
+{
+    if (l.empty() || l.size() > 20)
+        return false;
+    for (unsigned char c : l)
+        if (!std::isalnum(c) && c != '-')
+            return false;
+    return true;
+}
+
 bool validComputerName(const std::string& n)
 {
     if (n.empty() || n.size() > 15)

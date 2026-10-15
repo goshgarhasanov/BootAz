@@ -412,6 +412,8 @@ Plan planWrite(const DriveInfo& drive, const WriteOptions& opt)
         o.windows.architecture = architectureOf(img);
         if (!o.windows.localAccount.empty() && !validAccountName(o.windows.localAccount))
             p.errors.push_back(T("The account name is not valid for Windows"));
+        if (!o.windows.locale.empty() && !validLocale(o.windows.locale))
+            p.errors.push_back(T("The regional format is not valid (for example az-Latn-AZ)"));
         if (!o.windows.computerName.empty() && !validComputerName(o.windows.computerName))
             p.errors.push_back(T("The computer name is not valid (up to 15 letters, digits or hyphens)"));
     } else {
@@ -915,8 +917,7 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
         cp.writer = writer.get();
         if (o.splitWim) {
             // wimlib needs the WIM as a file: extract it to a temporary folder and split it there.
-            const fs::path tmp = fs::temp_directory_path() / ("bootaz-wim-" + std::to_string(std::time(nullptr)));
-            fs::create_directories(tmp);
+            const fs::path tmp = u8(makePrivateTempDir("bootaz-wim"));
             splitTmp = fromPath(tmp);
             const int wi = iso.find(plan.image.windowsInstallFile);
             const std::string wimPath = fromPath(tmp / "install.wim");
@@ -968,6 +969,9 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
         fs::remove_all(u8(splitTmp));
     if (!mountPoint.empty())
         disk->unmountPartition(mountPoint, ctx);
+    // Release the main partition (on Windows this unlocks its volume) before anything else uses it.
+    writer.reset();
+    mainTarget.reset();
 
     // ---- dual layout: the second (NTFS) partition gets the whole image
     if (plan.dualPartition) {
@@ -1051,7 +1055,9 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
         ctx.log(T("Adding the UEFI:NTFS boot partition"));
         const PartSpec& u = layout.parts[size_t(uefiIndex - 1)];
         const std::vector<uint8_t> img = uefiNtfsImage();
-        disk->writeAt(u.offset, img.data(), std::min<size_t>(img.size(), size_t(u.size)));
+        auto part = disk->partition(uefiIndex, u.offset, u.size, ctx);
+        part->writeAt(0, img.data(), std::min<size_t>(img.size(), size_t(u.size)));
+        part->flush();
     }
     disk->flush();
     disk->release(o.eject, ctx);

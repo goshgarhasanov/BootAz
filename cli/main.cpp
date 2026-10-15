@@ -244,6 +244,11 @@ bool resolveDrive(const Args& a, DriveInfo& d, std::string dev = "")
         printError(format(T("Drive not found: %1"), {dev}));
         return false;
     }
+    std::string why;
+    if (d.isFile && !invokingUserMayWrite(d.path, &why)) {
+        printError(why);
+        return false;
+    }
     if (d.system) {
         printError(T("This drive holds the running operating system and cannot be written"));
         return false;
@@ -655,6 +660,11 @@ int cmdSave(const Args& a)
     }
     if (!d.isFile && !requireAdmin())
         return kNeedAdmin;
+    std::string why;
+    if (!invokingUserMayWrite(outPath, &why)) {
+        printError(why);
+        return kUsage;
+    }
     const int rc = runJob([&](const JobContext& ctx) { saveDriveImage(d, outPath, a.has("--used-only"), ctx); });
     if (rc == kOk && !gJson)
         out(std::string(GREEN) + "✓ " + format(T("Saved to %1"), {outPath}) + RESET + "\n");

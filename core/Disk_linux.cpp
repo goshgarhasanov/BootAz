@@ -378,8 +378,52 @@ void handOverToUser(const std::string& path)
     if (g == gid_t(-1))
         if (const struct passwd* pw = ::getpwuid(u))
             g = pw->pw_gid;
-    if (::chown(path.c_str(), u, g) != 0) {
+    struct stat st {};
+    if (::lstat(path.c_str(), &st) != 0 || !S_ISREG(st.st_mode) || st.st_uid != 0)
+        return;   // only files this job created as root
+    if (::lchown(path.c_str(), u, g) != 0) {
     }
+}
+
+std::string makePrivateTempDir(const std::string& prefix)
+{
+    std::string tmpl = std::string(std::getenv("TMPDIR") && *std::getenv("TMPDIR") ? std::getenv("TMPDIR") : "/tmp") + "/" + prefix + "-XXXXXX";
+    std::vector<char> buf(tmpl.begin(), tmpl.end());
+    buf.push_back(0);
+    if (!::mkdtemp(buf.data()))
+        throw Error(T("Cannot create a temporary folder"));
+    return buf.data();
+}
+
+bool invokingUserMayWrite(const std::string& path, std::string* why)
+{
+    if (::geteuid() != 0)
+        return true;   // the kernel checks an ordinary user's rights itself
+    // Only jobs started from the desktop app through pkexec act on a user's behalf; an administrator
+    // who runs the CLI with sudo means what they type.
+    const char* uidEnv = std::getenv("PKEXEC_UID");
+    if (!uidEnv || !*uidEnv)
+        return true;
+    const uid_t uid = uid_t(std::strtoul(uidEnv, nullptr, 10));
+    struct stat st {};
+    if (::lstat(path.c_str(), &st) == 0) {
+        if (S_ISLNK(st.st_mode) || !S_ISREG(st.st_mode) || st.st_uid != uid) {
+            if (why)
+                *why = format(T("%1 is not your own file; choose a file in your own folders"), {path});
+            return false;
+        }
+        return true;
+    }
+    // A new file: the folder must belong to the user.
+    std::string dir = path.substr(0, path.find_last_of('/') == std::string::npos ? 0 : path.find_last_of('/'));
+    if (dir.empty())
+        dir = ".";
+    if (::stat(dir.c_str(), &st) != 0 || st.st_uid != uid) {
+        if (why)
+            *why = format(T("%1 is not your own folder; choose a folder in your home"), {dir});
+        return false;
+    }
+    return true;
 }
 
 // ---------------------------------------------------------------- formatting

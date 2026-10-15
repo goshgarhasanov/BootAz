@@ -32,6 +32,17 @@ xorriso -as mkisofs -quiet -V BOOTAZ_TEST -R -J -joliet-long \
     -o "$out/rr.iso" "$src" 2>/dev/null
 xorriso -as mkisofs -quiet -V BOOTAZ_TEST --norock -J -joliet-long -o "$out/joliet.iso" "$src" 2>/dev/null
 
+# ---- A crafted image: a Rock Ridge name that tries to climb out of the target folder.
+python3 - "$out/rr.iso" "$out/evil.iso" <<'EOF2'
+import sys
+d = bytearray(open(sys.argv[1], 'rb').read())
+needle = b'NM\x0f\x01\x00README.txt'
+i = d.find(needle)
+assert i >= 0, 'NM entry not found'
+d[i + 5:i + 15] = b'../../evil'
+open(sys.argv[2], 'wb').write(d)
+EOF2
+
 # ---- A Windows-like UDF image.
 win="$work/win"
 mkdir -p "$win/sources" "$win/efi/boot" "$win/boot"

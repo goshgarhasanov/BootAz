@@ -16,6 +16,7 @@
 #include <cstring>
 #include <filesystem>
 #include <map>
+#include <mutex>
 #include <thread>
 
 namespace fs = std::filesystem;
@@ -507,6 +508,9 @@ void osFormat(Disk& disk, int index, uint64_t offset, uint64_t size, const std::
     (void)size;
     if (!osCanFormat(fsType))
         throw Error(format(T("Unsupported file system: %1"), {fsType}));
+    // FormatEx reports through a plain callback, so only one format runs at a time.
+    static std::mutex formatLock;
+    std::lock_guard<std::mutex> lock(formatLock);
     const std::string vol = disk.partitionPath(index, offset, ctx);   // "\\?\Volume{...}\"
     HMODULE lib = LoadLibraryW(L"fmifs.dll");
     if (!lib)
@@ -806,5 +810,19 @@ void Disk::release(bool eject, const JobContext& ctx)
 }
 
 void handOverToUser(const std::string&) {}
+
+std::string makePrivateTempDir(const std::string& prefix)
+{
+    wchar_t base[MAX_PATH];
+    GetTempPathW(MAX_PATH, base);
+    for (int i = 0; i < 100; ++i) {
+        const std::wstring p = std::wstring(base) + W(prefix) + L"-" + std::to_wstring(GetTickCount64()) + L"-" + std::to_wstring(GetCurrentProcessId() + i);
+        if (CreateDirectoryW(p.c_str(), nullptr))   // fails if it exists: nobody can pre-create it for us
+            return U(p.c_str());
+    }
+    throw Error(T("Cannot create a temporary folder"));
+}
+
+bool invokingUserMayWrite(const std::string&, std::string*) { return true; }
 
 } // namespace bootaz
