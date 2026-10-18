@@ -55,6 +55,8 @@ jobs:
         run: ctest --test-dir build --output-on-failure
       - name: Package
         run: |
+          # bootaz-cli.exe is published on its own too: it must not need any MSYS2 DLL.
+          if ldd build/bootaz-cli.exe | grep -i ucrt64; then echo "bootaz-cli.exe is not self-contained"; exit 1; fi
           mkdir -p dist
           cp build/BootAz.exe build/bootaz-cli.exe dist/
           windeployqt6 --release --no-translations dist/BootAz.exe || windeployqt --release --no-translations dist/BootAz.exe
