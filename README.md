@@ -3,6 +3,20 @@
 <p align="center"><b>Windows və Linux üçün yüklənə bilən USB disklər — Rufus kimi, amma həm Windows-da, həm də Linux-da</b><br>
 <sub>Developed By <a href="https://goshgarhasanov.github.io">Goshgar Hasanzadeh</a> · Azərbaycanda hazırlanıb · GPL-3.0</sub></p>
 
+## Yükləmə / Download
+
+Hazır proqram [GitHub Releases](https://github.com/goshgarhasanov/BootAz/releases/latest) səhifəsindədir
+(ready-made builds are on the Releases page):
+
+| | Fayl | Necə işə salmaq |
+|---|---|---|
+| **Windows 10 / 11** (GUI + CLI) | [BootAz-windows-x64.zip](https://github.com/goshgarhasanov/BootAz/releases/latest/download/BootAz-windows-x64.zip) | Arxivi açın, `BootAz.exe`-ni işə salın (administrator icazəsi soruşulur) |
+| **Windows** — yalnız terminal | [bootaz-cli-windows-x64.exe](https://github.com/goshgarhasanov/BootAz/releases/latest/download/bootaz-cli-windows-x64.exe) | Tək fayl, quraşdırma lazım deyil; "Run as Administrator" terminalda |
+| **Linux x86-64** (Ubuntu 24.04+) | [BootAz-linux-x64.tar.gz](https://github.com/goshgarhasanov/BootAz/releases/latest/download/BootAz-linux-x64.tar.gz) | `sudo apt install libqt6widgets6 qt6-qpa-plugins`, sonra `./BootAz` |
+
+Hər buraxılışın yanında `SHA256SUMS` faylı var: `sha256sum -c SHA256SUMS`.
+Windows faylları hələ rəqəmsal imzalı deyil, ona görə SmartScreen "Unknown publisher" xəbərdarlığı göstərə bilər.
+
 <p align="center"><img src="docs/screenshots/main-az-windows.png" alt="BootAz" width="820"></p>
 
 **BootAz** ISO və disk obrazlarından yüklənə bilən USB fləş yaradan proqramdır. Rufus-un bütün əsas
@@ -135,19 +149,3 @@ drives at once, an official image downloader with SHA-256 checks, trying images 
 Start with `./run_gui.sh` / `run_gui.bat`, or `./run_cli.sh help`.
 
 Developed By **Goshgar Hasanzadeh** — https://goshgarhasanov.github.io
-
----
-
-## Yükləmə / Download
-
-Hazır proqram [GitHub Releases](https://github.com/goshgarhasanov/BootAz/releases/latest) səhifəsindədir
-(ready-made builds are on the Releases page):
-
-| | Fayl | Necə işə salmaq |
-|---|---|---|
-| **Windows 10 / 11** (GUI + CLI) | [BootAz-windows-x64.zip](https://github.com/goshgarhasanov/BootAz/releases/latest/download/BootAz-windows-x64.zip) | Arxivi açın, `BootAz.exe`-ni işə salın (administrator icazəsi soruşulur) |
-| **Windows** — yalnız terminal | [bootaz-cli-windows-x64.exe](https://github.com/goshgarhasanov/BootAz/releases/latest/download/bootaz-cli-windows-x64.exe) | Tək fayl, quraşdırma lazım deyil; "Run as Administrator" terminalda |
-| **Linux x86-64** (Ubuntu 24.04+) | [BootAz-linux-x64.tar.gz](https://github.com/goshgarhasanov/BootAz/releases/latest/download/BootAz-linux-x64.tar.gz) | `sudo apt install libqt6widgets6 qt6-qpa-plugins`, sonra `./BootAz` |
-
-Hər buraxılışın yanında `SHA256SUMS` faylı var: `sha256sum -c SHA256SUMS`.
-Windows faylları hələ rəqəmsal imzalı deyil, ona görə SmartScreen "Unknown publisher" xəbərdarlığı göstərə bilər.
