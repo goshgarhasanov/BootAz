@@ -285,7 +285,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     ver->setAlignment(Qt::AlignCenter);
     ver->setObjectName("Muted");
     v->addWidget(ver);
-    auto* desc = new QLabel(L("Bootable USB drives from Windows and Linux images. Made in Azerbaijan, for Windows and Linux."));
+    auto* desc = new QLabel(L("Cross-platform (Windows + Linux) bootable USB creator for ISO/IMG images: ISO and DD mode, GPT/MBR, UEFI/BIOS. Made in Azerbaijan."));
     desc->setWordWrap(true);
     desc->setAlignment(Qt::AlignCenter);
     v->addWidget(desc);
