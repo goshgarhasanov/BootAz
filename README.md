@@ -132,11 +132,6 @@ Yalnız CLI-ı Linux-dan Windows üçün də build etmək olar: `cmake -S . -B b
 
 Tam test, kod, təhlükəsizlik və gələcək review: [docs/REVIEW.md](docs/REVIEW.md).
 
-## Lisenziya və təşəkkür
-
-GPL-3.0. ms-sys yükləmə kodu və UEFI:NTFS sürücüləri [Rufus](https://github.com/pbatard/rufus) layihəsindən
-(Pete Batard) götürülüb — ətraflı: [third_party/README.md](third_party/README.md).
-
 ---
 
 ## English
