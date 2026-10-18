@@ -43,7 +43,6 @@
 using namespace bootaz;
 
 static QString L(const char* s) { return QString::fromStdString(T(s)); }
-static QString L(const std::string& s) { return QString::fromStdString(T(s)); }
 static QString Q(const std::string& s) { return QString::fromStdString(s); }
 static QString HB(uint64_t b) { return Q(humanBytes(b)); }
 
@@ -859,8 +858,8 @@ void MainWindow::start()
         if (!w.locale.empty()) args << "--win-locale" << Q(w.locale);
         if (!w.computerName.empty()) args << "--win-computer-name" << Q(w.computerName);
     }
-    if (drives.size() == 1)
-        args << "--expect-id" << Q(drives.front().id);
+    for (const DriveInfo& d : drives)   // one per --device, same order
+        args << "--expect-id" << Q(d.id);
     bool fixed = false;
     for (const DriveInfo& d : drives)
         fixed = fixed || (!d.usb && !d.removable);
@@ -908,6 +907,8 @@ void MainWindow::runTool(const QString& what)
     }
     if (!d.usb && !d.removable)
         args << "--allow-fixed";
+    if (what != "save")
+        args << "--expect-id" << Q(d.id);
     devProgress_.clear();
     devProgress_[Q(d.path)] = 0;
     lastReport_ = {};
@@ -947,7 +948,7 @@ void MainWindow::testInVm()
 #endif
     // UEFI firmware when the image boots that way and OVMF is installed.
     QString ovmf;
-    for (const QString& c : {"/usr/share/OVMF/OVMF_CODE_4M.fd", "/usr/share/OVMF/OVMF_CODE.fd", "/usr/share/edk2/ovmf/OVMF_CODE.fd",
+    for (const QString c : {"/usr/share/OVMF/OVMF_CODE_4M.fd", "/usr/share/OVMF/OVMF_CODE.fd", "/usr/share/edk2/ovmf/OVMF_CODE.fd",
                              "/usr/share/qemu/edk2-x86_64-code.fd", "C:/Program Files/qemu/share/edk2-x86_64-code.fd"})
         if (QFileInfo::exists(c)) {
             ovmf = c;
@@ -955,10 +956,12 @@ void MainWindow::testInVm()
         }
     if (image_.uefiBootable() && !ovmf.isEmpty())
         args << "-drive" << "if=pflash,format=raw,readonly=on,file=" + ovmf;
+    QString file = Q(image_.path);
+    file.replace(",", ",,");   // QEMU option syntax
     if (image_.kind == ImageKind::Iso && !image_.isohybrid)
-        args << "-drive" << "file=" + Q(image_.path) + ",media=cdrom,readonly=on";
+        args << "-drive" << "file=" + file + ",media=cdrom,readonly=on";
     else
-        args << "-drive" << "file=" + Q(image_.path) + ",format=raw,if=none,id=usb,snapshot=on" << "-device" << "qemu-xhci"
+        args << "-drive" << "file=" + file + ",format=raw,if=none,id=usb,snapshot=on" << "-device" << "qemu-xhci"
              << "-device" << "usb-storage,drive=usb,bootindex=0";
     if (QProcess::startDetached(qemu, args))
         setStatus(L("The image is starting in a virtual machine. Nothing is written to the drive."));

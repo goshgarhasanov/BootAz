@@ -45,6 +45,7 @@ extern const std::pair<const char*, const char*> kAzerbaijani[] = {
     {"Unexpected end of file in %1", "%1 faylı gözlənilmədən bitdi"},
     {"Cannot create folder %1: %2", "%1 qovluğu yaradılmadı: %2"},
     {"Cannot create a temporary folder", "Müvəqqəti qovluq yaradılmadı"},
+    {"Not enough free space for temporary files: %1 needed, %2 available", "Müvəqqəti fayllar üçün yer çatmır: %1 lazımdır, %2 var"},
     {"Cannot write to the folder", "Qovluğa yazmaq mümkün olmadı"},
     {"Required program not found: %1", "Lazım olan proqram tapılmadı: %1"},
     {"Cannot start %1: %2", "%1 işə salınmadı: %2"},

@@ -19,5 +19,11 @@ if [ ! -f "$apps/bootaz.desktop" ] || ! grep -q "$PWD" "$apps/bootaz.desktop" 2>
     sed "s|@DIR@|$PWD|g" resources/bootaz.desktop > "$apps/bootaz.desktop"
     command -v update-desktop-database >/dev/null && update-desktop-database "$apps" >/dev/null 2>&1 || true
 fi
+# Keep the menu icon in step with the logo.
+if ! cmp -s resources/bootaz-256.png "$icons/bootaz.png"; then
+    mkdir -p "$icons"
+    cp resources/bootaz-256.png "$icons/bootaz.png"
+    command -v gtk-update-icon-cache >/dev/null && gtk-update-icon-cache -q -t "${icons%/256x256/apps}" >/dev/null 2>&1 || true
+fi
 
 exec "$BUILD/BootAz" "$@"

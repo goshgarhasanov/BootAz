@@ -263,8 +263,13 @@ void Fat32Writer::addRec(int dirIdx, const std::string& name, uint8_t attr, int 
         return true;
     };
     bool baseLower = false, extLower = false;
-    const bool fits = name != "." && name != ".." && valid83(base, 8, baseLower) &&
-                      (ext.empty() || valid83(ext, 3, extLower)) && (dot == std::string::npos || !ext.empty());
+    bool fits = name != "." && name != ".." && valid83(base, 8, baseLower) &&
+                (ext.empty() || valid83(ext, 3, extLower)) && (dot == std::string::npos || !ext.empty());
+    if (fits) {   // a generated "NAME~1.EXT" may already hold this short name
+        std::string sn = upper(base);
+        sn.resize(8, ' ');
+        fits = !d.shortNames.count(sn + (upper(ext) + "   ").substr(0, 3));
+    }
     std::memset(r.shortName, ' ', 11);
     if (fits) {
         const std::string B = upper(base), E = upper(ext);

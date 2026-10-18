@@ -148,6 +148,7 @@ struct Args {
     std::string command;
     std::vector<std::string> positional;
     std::vector<std::string> devices;   // every --device given
+    std::vector<std::string> expectIds; // every --expect-id given, in the order of the devices
     std::map<std::string, std::string> opts;   // "--name" -> value ("" for flags)
 
     bool has(const std::string& k) const { return opts.count(k) > 0; }
@@ -180,8 +181,10 @@ bool parseArgs(const std::vector<std::string>& argv, Args& a, std::string& err)
                 val = argv[++i];
             }
             a.opts[key] = val;
-            if (key == "--device")
+            if (key == "--device" && std::find(a.devices.begin(), a.devices.end(), val) == a.devices.end())
                 a.devices.push_back(val);
+            if (key == "--expect-id")
+                a.expectIds.push_back(val);
         } else if (s == "-y") {
             a.opts["--yes"] = "";
         } else if (s == "-h") {
@@ -201,6 +204,8 @@ uint64_t parseSize(const std::string& s)
         return 0;
     char* end = nullptr;
     const double v = std::strtod(s.c_str(), &end);
+    if (!(v > 0) || v > 1e15)
+        return 0;
     std::string unit = lower(trim(end ? end : ""));
     uint64_t mul = MiB;   // plain numbers are MB
     if (unit == "k" || unit == "kb" || unit == "kib") mul = KiB;
@@ -232,6 +237,18 @@ bool requireAdmin()
     return false;
 }
 
+// The id the desktop app saw for this drive when the user picked it ("" = not given).
+std::string expectedIdFor(const Args& a, const std::string& dev)
+{
+    if (a.expectIds.empty())
+        return {};
+    if (a.expectIds.size() == 1 && a.devices.size() <= 1)
+        return a.expectIds.front();
+    const auto it = std::find(a.devices.begin(), a.devices.end(), dev);
+    const size_t i = size_t(it - a.devices.begin());
+    return i < a.expectIds.size() ? a.expectIds[i] : std::string();
+}
+
 bool resolveDrive(const Args& a, DriveInfo& d, std::string dev = "")
 {
     if (dev.empty())
@@ -242,6 +259,10 @@ bool resolveDrive(const Args& a, DriveInfo& d, std::string dev = "")
     }
     if (!findDrive(dev, d, a.has("--allow-file"))) {
         printError(format(T("Drive not found: %1"), {dev}));
+        return false;
+    }
+    if (const std::string want = expectedIdFor(a, dev); !want.empty() && want != d.id) {
+        printError(T("The drive changed since it was selected; refresh the list and try again"));
         return false;
     }
     std::string why;
@@ -509,7 +530,12 @@ int writeOne(const Args& a, bool formatOnly, const DriveInfo& d, bool planOnlyOu
     o.label = a.get("--label");
     if (a.has("--cluster")) {   // bytes ("4096") or with a unit ("32K")
         const std::string cl = a.get("--cluster");
-        o.clusterSize = cl.find_first_not_of("0123456789") == std::string::npos ? uint32_t(std::stoul(cl)) : uint32_t(parseSize(cl));
+        const uint64_t v = cl.find_first_not_of("0123456789") == std::string::npos && cl.size() < 12 ? std::stoull(cl) : parseSize(cl);
+        if (v == 0 || v > 64 * MiB || (v & (v - 1))) {
+            printError(T("Invalid cluster size for FAT32"));
+            return kUsage;
+        }
+        o.clusterSize = uint32_t(v);
     }
     o.quickFormat = !a.has("--full-format");
     o.badBlockPasses = a.has("--badblocks") ? std::atoi(a.get("--badblocks").c_str()) : 0;
@@ -522,7 +548,7 @@ int writeOne(const Args& a, bool formatOnly, const DriveInfo& d, bool planOnlyOu
         o.winLayout = wl == "ntfs" ? WinLayout::Ntfs : wl == "split" ? WinLayout::Split : wl == "dual" ? WinLayout::Dual : WinLayout::Auto;
     }
     o.autorun = !a.has("--no-autorun");
-    o.expectedId = a.get("--expect-id");
+    o.expectedId = expectedIdFor(a, d.path);
     o.windows.bypassHardwareChecks = a.has("--win-bypass");
     o.windows.noOnlineAccount = a.has("--win-no-online");
     o.windows.localAccount = a.get("--win-local-user");

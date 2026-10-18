@@ -52,3 +52,21 @@ Prioritet sırası ilə:
 9. **Tam ekran oxunaqlılıq**: ekran oxuyucu etiketləri, klaviatura ilə tam idarə, böyük şrift rejimi.
 10. **Avtomatik yeniləmə yoxlaması** (GitHub Releases) və rus/türk dili.
 11. **Paket**: Flatpak / AppImage / .deb, polkit siyasəti ilə daha aydın parol pəncərəsi.
+
+## 5. Review 2 (1.0.1, 18 oktyabr 2026)
+
+Bütün kod yenidən oxundu; ASan + UBSan ilə build, mutasiya fuzz testi (ISO 9660 / Rock Ridge / Joliet / UDF,
+6000+ zədələnmiş obraz), loop cihazlarında inteqrasiya (29/29), QEMU-da Alpine (UEFI + BIOS), Wine altında Windows CLI.
+
+| Tapılan | Təsir | Düzəliş |
+|---|---|---|
+| Zərərli ISO: ad uzunluğu qeyddən böyük olanda yaddaşdan kənar oxuma və `std::length_error` (fuzz tapdı) | GUI çökə bilərdi | Qeyd sərhədləri yoxlanılır; UDF partition map sərhədi; `planWrite` hər istisnanı tutur |
+| `fsync` xətası nəzərə alınmırdı | Çıxarılan / xarab fləşdə "uğurlu" yazı | Xəta indi işi dayandırır |
+| `fork()`-dan sonra yaddaş ayrılması (bir neçə fləş paralel) | Nadir donma | `argv` / mühit `fork`-dan əvvəl hazırlanır, `execve`; alətlərin stdin-i `/dev/null` (ləğv kanalı qorunur) |
+| Bir neçə fləşə yazanda və alətlərdə (bad blocks, saxta disk, bərpa) disk ID yoxlanılmırdı | Hotplug-da səhv diskə yazmaq riski | Hər `--device` üçün öz `--expect-id`-si; eyni disk iki dəfə verilsə bir dəfə yazılır |
+| Bölünmüş WIM üçün müvəqqəti fayllar (~9 GB) xətada qalırdı və RAM-dakı `/tmp`-yə yazılırdı | Disk / RAM dolur | RAII təmizləmə; boş yer yoxlanılır, `/var/tmp` üstünlüklüdür |
+| Sistem diski yalnız `/proc/mounts`-dakı adla tapılırdı | `/dev/root` kimi adlarda qorunma yox | Cihaz nömrəsi ilə də yoxlanılır |
+| FAT32: yaradılmış `ADI~1.EXT` ilə eyni adlı real fayl | Təkrar qısa ad | Toqquşma yoxlanılır |
+| `--cluster` yanlış dəyər, mənfi ölçü, QEMU-da vergüllü fayl adı | Çökmə / səhv | Yoxlanılır / escape olunur |
+
+Logo: ikonun bütün fonu Azərbaycan bayrağıdır, üstündə ağ USB fləş, ay-ulduz fləşin üzərində.

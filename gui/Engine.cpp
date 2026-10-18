@@ -108,7 +108,7 @@ void Engine::readOutput()
     if (!proc_)
         return;
     buffer_ += proc_->readAllStandardOutput();
-    int nl;
+    qsizetype nl;
     while ((nl = buffer_.indexOf('\n')) >= 0) {
         const QByteArray line = buffer_.left(nl).trimmed();
         buffer_.remove(0, nl + 1);

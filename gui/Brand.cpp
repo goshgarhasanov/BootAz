@@ -34,6 +34,18 @@ QPainterPath star8(QPointF c, double outer, double inner)
     return path;
 }
 
+// Crescent and eight-pointed star, sized for a flag of height h with the crescent centred on c.
+void drawEmblem(QPainter& p, QPointF c, double h, const QColor& color)
+{
+    QPainterPath outer, inner;
+    outer.addEllipse(c, 0.15 * h, 0.15 * h);
+    inner.addEllipse(QPointF(c.x() + 0.037 * h, c.y()), 0.125 * h, 0.125 * h);
+    p.setPen(Qt::NoPen);
+    p.setBrush(color);
+    p.drawPath(outer.subtracted(inner));
+    p.drawPath(star8(QPointF(c.x() + 0.105 * h, c.y()), 0.072 * h, 0.034 * h));
+}
+
 } // namespace
 
 void drawFlag(QPainter& p, const QRectF& r)
@@ -44,13 +56,7 @@ void drawFlag(QPainter& p, const QRectF& r)
     p.fillRect(QRectF(r.left(), r.top(), r.width(), band + 0.5), kBlue);
     p.fillRect(QRectF(r.left(), r.top() + band, r.width(), band + 0.5), kRed);
     p.fillRect(QRectF(r.left(), r.top() + 2 * band, r.width(), r.height() - 2 * band), kGreen);
-    const QPointF c(r.center().x() - 0.03 * h, r.center().y());
-    QPainterPath outer, inner;
-    outer.addEllipse(c, 0.15 * h, 0.15 * h);
-    inner.addEllipse(QPointF(c.x() + 0.037 * h, c.y()), 0.125 * h, 0.125 * h);
-    p.setBrush(Qt::white);
-    p.drawPath(outer.subtracted(inner));
-    p.drawPath(star8(QPointF(c.x() + 0.105 * h, c.y()), 0.072 * h, 0.034 * h));
+    drawEmblem(p, QPointF(r.center().x() - 0.03 * h, r.center().y()), h, Qt::white);
     p.restore();
 }
 
@@ -61,68 +67,64 @@ void drawLogo(QPainter& p, const QRectF& rect)
     p.save();
     p.setRenderHint(QPainter::Antialiasing);
 
-    // Tile: deep navy with a soft glow.
-    QLinearGradient bg(r.topLeft(), r.bottomRight());
-    bg.setColorAt(0, QColor(0x1d, 0x27, 0x45));
-    bg.setColorAt(1, QColor(0x0d, 0x12, 0x20));
+    // Tile: the whole flag of Azerbaijan, with a soft gloss.
     QPainterPath tile;
     tile.addRoundedRect(r, s * 0.22, s * 0.22);
-    p.fillPath(tile, bg);
-    QRadialGradient glow(QPointF(r.center().x(), r.top() + s * 0.25), s * 0.7);
-    glow.setColorAt(0, QColor(0x00, 0xb5, 0xe2, 70));
-    glow.setColorAt(1, QColor(0x00, 0xb5, 0xe2, 0));
-    p.fillPath(tile, glow);
+    p.save();
+    p.setClipPath(tile);
+    p.setPen(Qt::NoPen);
+    const double band = s / 3.0;
+    p.fillRect(QRectF(r.left(), r.top(), s, band + 0.5), kBlue);
+    p.fillRect(QRectF(r.left(), r.top() + band, s, band + 0.5), kRed);
+    p.fillRect(QRectF(r.left(), r.top() + 2 * band, s, s - 2 * band), kGreen);
+    QLinearGradient shine(r.topLeft(), r.bottomLeft());
+    shine.setColorAt(0, QColor(255, 255, 255, 50));
+    shine.setColorAt(0.5, QColor(255, 255, 255, 0));
+    shine.setColorAt(1, QColor(0, 0, 0, 40));
+    p.fillRect(r, shine);
+    p.restore();
 
-    // USB stick standing upright, slightly tilted.
+    // White USB stick standing upright, slightly tilted, carrying the crescent and star.
     p.translate(r.center());
     p.rotate(-12);
-    const double bw = s * 0.40, bh = s * 0.52;   // body
-    const QRectF body(-bw / 2, -bh / 2 + s * 0.08, bw, bh);
-    const double cw = bw * 0.62, ch = s * 0.20;  // metal connector
+    const double bw = s * 0.40, bh = s * 0.50;   // body
+    const QRectF body(-bw / 2, -bh / 2 + s * 0.10, bw, bh);
+    const double cw = bw * 0.62, ch = s * 0.19;  // metal connector
     const QRectF conn(-cw / 2, body.top() - ch + s * 0.01, cw, ch);
+    QPainterPath connPath, bodyPath;
+    connPath.addRoundedRect(conn, s * 0.025, s * 0.025);
+    bodyPath.addRoundedRect(body, s * 0.07, s * 0.07);
+
+    // drop shadow
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(0, 0, 0, 70));
+    p.drawPath(connPath.united(bodyPath).translated(s * 0.015, s * 0.03));
 
     QLinearGradient metal(conn.topLeft(), conn.topRight());
     metal.setColorAt(0, QColor(0xb8, 0xc0, 0xcc));
     metal.setColorAt(0.5, QColor(0xf2, 0xf4, 0xf7));
     metal.setColorAt(1, QColor(0x9a, 0xa3, 0xb2));
-    QPainterPath connPath;
-    connPath.addRoundedRect(conn, s * 0.025, s * 0.025);
     p.fillPath(connPath, metal);
-    p.setPen(Qt::NoPen);
     p.setBrush(QColor(0x2a, 0x30, 0x3d));
     const double hole = cw * 0.2;
     p.drawRect(QRectF(conn.left() + cw * 0.18, conn.top() + ch * 0.28, hole, hole * 0.8));
     p.drawRect(QRectF(conn.right() - cw * 0.18 - hole, conn.top() + ch * 0.28, hole, hole * 0.8));
 
-    // Body with the flag.
-    QPainterPath bodyPath;
-    bodyPath.addRoundedRect(body, s * 0.07, s * 0.07);
-    p.save();
-    p.setClipPath(bodyPath);
-    drawFlag(p, QRectF(body.left() - 1, body.top() + bh * 0.10, body.width() + 2, bh * 0.66));
-    // dark caps above and below the flag
-    p.fillRect(QRectF(body.left(), body.top(), body.width(), bh * 0.10 + 0.5), QColor(0x14, 0x18, 0x21));
-    p.fillRect(QRectF(body.left(), body.top() + bh * 0.76, body.width(), bh * 0.24 + 1), QColor(0x14, 0x18, 0x21));
-    // gloss
-    QLinearGradient gloss(body.topLeft(), body.topRight());
-    gloss.setColorAt(0, QColor(255, 255, 255, 60));
-    gloss.setColorAt(0.45, QColor(255, 255, 255, 0));
-    p.fillRect(body, gloss);
-    p.restore();
-    p.setPen(QPen(QColor(255, 255, 255, 40), s * 0.012));
-    p.setBrush(Qt::NoBrush);
-    p.drawPath(bodyPath);
+    QLinearGradient white(body.topLeft(), body.bottomRight());
+    white.setColorAt(0, QColor(0xff, 0xff, 0xff));
+    white.setColorAt(1, QColor(0xe4, 0xe9, 0xf0));
+    p.fillPath(bodyPath, white);
+    drawEmblem(p, QPointF(-0.035 * s, body.top() + bh * 0.42), bw * 1.55, kRed);
 
-    // Status light / power symbol at the bottom.
-    const QPointF led(0, body.top() + bh * 0.88);
-    QRadialGradient ledGlow(led, s * 0.07);
-    ledGlow.setColorAt(0, QColor(0x5e, 0xea, 0xd4));
-    ledGlow.setColorAt(1, QColor(0x5e, 0xea, 0xd4, 0));
-    p.setPen(Qt::NoPen);
+    // Status light at the bottom, in the flag's green.
+    const QPointF led(0, body.top() + bh * 0.83);
+    QRadialGradient ledGlow(led, s * 0.06);
+    ledGlow.setColorAt(0, QColor(0x6c, 0xd1, 0x3f));
+    ledGlow.setColorAt(1, QColor(0x6c, 0xd1, 0x3f, 0));
     p.setBrush(ledGlow);
-    p.drawEllipse(led, s * 0.07, s * 0.07);
-    p.setBrush(QColor(0xd9, 0xff, 0xf8));
-    p.drawEllipse(led, s * 0.02, s * 0.02);
+    p.drawEllipse(led, s * 0.06, s * 0.06);
+    p.setBrush(kGreen);
+    p.drawEllipse(led, s * 0.022, s * 0.022);
     p.restore();
 }
 

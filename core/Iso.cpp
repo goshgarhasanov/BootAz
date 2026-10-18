@@ -277,6 +277,8 @@ void IsoImage::parseIsoDir(int parent, uint32_t lba, uint32_t size, bool joliet,
         const uint8_t* r = data.data() + pos;
         pos += len;
         const uint8_t nameLen = r[32];
+        if (33u + nameLen > len)
+            continue;   // crafted record: the name would run past the record
         if (nameLen == 1 && (r[33] == 0 || r[33] == 1))
             continue;   // "." and ".."
 
@@ -298,7 +300,8 @@ void IsoImage::parseIsoDir(int parent, uint32_t lba, uint32_t size, bool joliet,
             bool isLink = false;
             std::string target;
             // System Use area, possibly continued through "CE" entries.
-            std::vector<uint8_t> su(r + 33 + nameLen + ((nameLen % 2 == 0) ? 1 : 0), r + len);
+            const size_t suStart = std::min<size_t>(33u + nameLen + ((nameLen % 2 == 0) ? 1 : 0), len);
+            std::vector<uint8_t> su(r + suStart, r + len);
             if (su.size() >= size_t(rrSkip_))
                 su.erase(su.begin(), su.begin() + rrSkip_);
             for (int hops = 0; hops < 8 && !su.empty(); ++hops) {
@@ -611,7 +614,7 @@ bool IsoImage::readUdf()
                 fsdRef = le16(d + 248 + 8);
                 const uint32_t nMaps = le32(d + 268);
                 size_t m = 440;
-                for (uint32_t k = 0; k < nMaps && m + 2 <= kSector; ++k) {
+                for (uint32_t k = 0; k < nMaps && m + 64 <= kSector; ++k) {   // type 1 maps are 6 bytes, type 2 are 64
                     UdfMap map;
                     map.type = d[m];
                     const uint8_t mlen = d[m + 1];

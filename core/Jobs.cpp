@@ -262,7 +262,7 @@ Plan planWrite(const DriveInfo& drive, const WriteOptions& opt)
     if (haveImage) {
         try {
             p.image = analyzeImage(o.image);
-        } catch (const Error& e) {
+        } catch (const std::exception& e) {
             p.errors.push_back(e.what());
             return p;
         }
@@ -405,7 +405,6 @@ Plan planWrite(const DriveInfo& drive, const WriteOptions& opt)
             p.errors.push_back(T("Persistence needs an ext4 partition, which this computer cannot create"));
         } else if (o.fs != FsType::Fat32) {
             p.errors.push_back(T("Persistence needs FAT32 as the main file system"));
-        } else if (o.scheme == Scheme::Mbr && false) {
         }
     }
     if (img.isWindows) {
@@ -430,7 +429,7 @@ Plan planWrite(const DriveInfo& drive, const WriteOptions& opt)
                                   {humanBytes(img.filesTotal), humanBytes(usable)}));
     if (o.badBlockPasses > 0)
         p.warnings.push_back(format(T("The bad block test writes the whole drive %1 time(s) and takes a long time"),
-                                    {std::to_string(o.badBlockPasses * 1)}));
+                                    {std::to_string(o.badBlockPasses)}));
     return p;
 }
 
@@ -909,6 +908,15 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
     // ---- files
     CopyPlan cp;
     std::string splitTmp;
+    struct TempCleanup {
+        std::string& dir;
+        ~TempCleanup()
+        {
+            std::error_code ec;
+            if (!dir.empty())
+                fs::remove_all(u8(dir), ec);
+        }
+    } splitCleanup{splitTmp};   // the extracted install.wim is gigabytes: never leave it behind
     if (!o.image.empty()) {
         cp.iso = &iso;
         if (plan.dualPartition)
@@ -917,7 +925,8 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
         cp.writer = writer.get();
         if (o.splitWim) {
             // wimlib needs the WIM as a file: extract it to a temporary folder and split it there.
-            const fs::path tmp = u8(makePrivateTempDir("bootaz-wim"));
+            // The extracted WIM and its parts exist side by side for a moment.
+            const fs::path tmp = u8(makePrivateTempDir("bootaz-wim", 2 * plan.image.windowsInstallSize + 64 * MiB));
             splitTmp = fromPath(tmp);
             const int wi = iso.find(plan.image.windowsInstallFile);
             const std::string wimPath = fromPath(tmp / "install.wim");
@@ -938,13 +947,7 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
             fs::remove(u8(wimPath));
             cp.splitDir = fromPath(tmp / "parts");
         }
-        try {
-            copyTree(cp, ctx);
-        } catch (...) {
-            if (!splitTmp.empty())
-                fs::remove_all(u8(splitTmp));
-            throw;
-        }
+        copyTree(cp, ctx);
         if (o.windows.any()) {
             const std::string xml = makeAutounattend(o.windows);
             writer->writeFile("/autounattend.xml", xml.size(), [&](const FileSink& s) {
@@ -965,8 +968,11 @@ void runWrite(const DriveInfo& selected, const Plan& plan, const JobContext& ctx
     disk->flush();
     if (writer && cp.iso && o.verify)
         verifyTree(cp, ctx);
-    if (!splitTmp.empty())
-        fs::remove_all(u8(splitTmp));
+    if (!splitTmp.empty()) {
+        std::error_code ec;
+        fs::remove_all(u8(splitTmp), ec);
+        splitTmp.clear();
+    }
     if (!mountPoint.empty())
         disk->unmountPartition(mountPoint, ctx);
     // Release the main partition (on Windows this unlocks its volume) before anything else uses it.

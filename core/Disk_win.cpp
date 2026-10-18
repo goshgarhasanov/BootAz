@@ -811,10 +811,14 @@ void Disk::release(bool eject, const JobContext& ctx)
 
 void handOverToUser(const std::string&) {}
 
-std::string makePrivateTempDir(const std::string& prefix)
+std::string makePrivateTempDir(const std::string& prefix, uint64_t needBytes)
 {
     wchar_t base[MAX_PATH];
     GetTempPathW(MAX_PATH, base);
+    ULARGE_INTEGER avail{};
+    if (needBytes && GetDiskFreeSpaceExW(base, &avail, nullptr, nullptr) && avail.QuadPart < needBytes)
+        throw Error(format(T("Not enough free space for temporary files: %1 needed, %2 available"),
+                           {humanBytes(needBytes), humanBytes(avail.QuadPart)}));
     for (int i = 0; i < 100; ++i) {
         const std::wstring p = std::wstring(base) + W(prefix) + L"-" + std::to_wstring(GetTickCount64()) + L"-" + std::to_wstring(GetCurrentProcessId() + i);
         if (CreateDirectoryW(p.c_str(), nullptr))   // fails if it exists: nobody can pre-create it for us

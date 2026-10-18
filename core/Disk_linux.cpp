@@ -5,6 +5,7 @@
 #include "I18n.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
@@ -28,6 +29,8 @@
 #include <unistd.h>
 
 namespace fs = std::filesystem;
+
+extern char** environ;
 
 namespace bootaz {
 
@@ -59,7 +62,8 @@ std::string udevUnescape(const std::string& s)
 {
     std::string o;
     for (size_t i = 0; i < s.size(); ++i) {
-        if (s[i] == '\\' && i + 3 < s.size() && s[i + 1] == 'x') {
+        if (s[i] == '\\' && i + 3 < s.size() && s[i + 1] == 'x' && std::isxdigit(static_cast<unsigned char>(s[i + 2])) &&
+            std::isxdigit(static_cast<unsigned char>(s[i + 3]))) {
             o += char(std::stoi(s.substr(i + 2, 2), nullptr, 16));
             i += 3;
         } else {
@@ -75,7 +79,8 @@ std::string unescapeMount(const std::string& s)
 {
     std::string o;
     for (size_t i = 0; i < s.size(); ++i) {
-        if (s[i] == '\\' && i + 3 < s.size()) {
+        if (s[i] == '\\' && i + 3 < s.size() && std::all_of(s.begin() + long(i) + 1, s.begin() + long(i) + 4,
+                                                             [](char c) { return c >= '0' && c <= '7'; })) {
             o += char(std::stoi(s.substr(i + 1, 3), nullptr, 8));
             i += 3;
         } else {
@@ -151,6 +156,17 @@ std::set<std::string> systemDisks()
     for (const MountEntry& m : mounts())
         if (critical.count(m.dir) && startsWith(m.dev, "/dev/"))
             disksOf(kernelName(m.dev), sys);
+    // The block device under the critical folders by device number, whatever /proc/mounts calls it
+    // ("/dev/root", a by-uuid link that no longer exists, ...).
+    for (const std::string& dir : critical) {
+        struct stat st {};
+        if (::stat(dir.c_str(), &st) != 0 || major(st.st_dev) == 0)
+            continue;   // virtual / network / btrfs-subvolume ids
+        std::error_code ec;
+        const fs::path p = fs::canonical("/sys/dev/block/" + std::to_string(major(st.st_dev)) + ":" + std::to_string(minor(st.st_dev)), ec);
+        if (!ec)
+            disksOf(p.filename().string(), sys);
+    }
     std::istringstream sw(readTextFile("/proc/swaps"));
     std::string line;
     std::getline(sw, line);
@@ -326,19 +342,38 @@ int runProgram(const std::vector<std::string>& argv, const JobContext& ctx, std:
         cmd += (cmd.empty() ? "" : " ") + a;
     ctx.log("$ " + cmd);
 
+    // Everything the child needs is prepared before fork(): other threads (several drives at
+    // once) may hold the allocator's lock, so the child must not allocate.
+    std::vector<char*> args;
+    for (const auto& a : argv)
+        args.push_back(const_cast<char*>(a.c_str()));
+    args.push_back(nullptr);
+    std::vector<std::string> envStore;
+    for (char** e = environ; *e; ++e)
+        if (std::strncmp(*e, "LC_ALL=", 7) != 0)
+            envStore.emplace_back(*e);
+    envStore.emplace_back("LC_ALL=C");
+    std::vector<char*> env;
+    for (auto& e : envStore)
+        env.push_back(e.data());
+    env.push_back(nullptr);
+
     int pipefd[2];
     if (::pipe2(pipefd, O_CLOEXEC) != 0)
         throw Error("pipe() failed");
     const pid_t pid = ::fork();
+    if (pid < 0) {
+        ::close(pipefd[0]);
+        ::close(pipefd[1]);
+        throw Error("fork() failed");
+    }
     if (pid == 0) {
         ::dup2(pipefd[1], 1);
         ::dup2(pipefd[1], 2);
-        ::setenv("LC_ALL", "C", 1);
-        std::vector<char*> args;
-        for (const auto& a : argv)
-            args.push_back(const_cast<char*>(a.c_str()));
-        args.push_back(nullptr);
-        ::execv(exe.c_str(), args.data());
+        const int devnull = ::open("/dev/null", O_RDONLY);
+        if (devnull >= 0)
+            ::dup2(devnull, 0);   // the desktop app's cancel channel is our stdin: tools must not read it
+        ::execve(exe.c_str(), args.data(), env.data());
         ::_exit(127);
     }
     ::close(pipefd[1]);
@@ -354,7 +389,8 @@ int runProgram(const std::vector<std::string>& argv, const JobContext& ctx, std:
     }
     ::close(pipefd[0]);
     int status = 0;
-    ::waitpid(pid, &status, 0);
+    while (::waitpid(pid, &status, 0) < 0 && errno == EINTR) {
+    }
     for (const std::string& l : split(out, '\n'))
         if (!trim(l).empty())
             ctx.log("  " + trim(l));
@@ -385,14 +421,32 @@ void handOverToUser(const std::string& path)
     }
 }
 
-std::string makePrivateTempDir(const std::string& prefix)
+std::string makePrivateTempDir(const std::string& prefix, uint64_t needBytes)
 {
-    std::string tmpl = std::string(std::getenv("TMPDIR") && *std::getenv("TMPDIR") ? std::getenv("TMPDIR") : "/tmp") + "/" + prefix + "-XXXXXX";
-    std::vector<char> buf(tmpl.begin(), tmpl.end());
-    buf.push_back(0);
-    if (!::mkdtemp(buf.data()))
-        throw Error(T("Cannot create a temporary folder"));
-    return buf.data();
+    std::vector<std::string> bases;
+    if (const char* t = std::getenv("TMPDIR"); t && *t)
+        bases.push_back(t);
+    bases.push_back("/var/tmp");
+    bases.push_back("/tmp");
+    uint64_t best = 0;
+    for (const std::string& base : bases) {
+        std::error_code ec;
+        const auto sp = fs::space(base, ec);
+        if (ec)
+            continue;
+        best = std::max<uint64_t>(best, sp.available);
+        if (needBytes && sp.available < needBytes)
+            continue;
+        std::string tmpl = base + "/" + prefix + "-XXXXXX";
+        std::vector<char> buf(tmpl.begin(), tmpl.end());
+        buf.push_back(0);
+        if (::mkdtemp(buf.data()))
+            return buf.data();
+    }
+    if (needBytes && best < needBytes)
+        throw Error(format(T("Not enough free space for temporary files: %1 needed, %2 available"),
+                           {humanBytes(needBytes), humanBytes(best)}));
+    throw Error(T("Cannot create a temporary folder"));
 }
 
 bool invokingUserMayWrite(const std::string& path, std::string* why)
@@ -618,7 +672,9 @@ void Disk::flush()
 {
     if (fd_ < 0)
         return;
-    ::fsync(fd_);
+    // Writes go through the page cache, so a failing or unplugged drive reports its errors here.
+    if (::fsync(fd_) != 0 && errno != EINVAL)
+        throw Error(format(T("Write error at %1 on %2: %3"), {"fsync", drive_.path, std::strerror(errno)}));
     if (!drive_.isFile)
         ::ioctl(fd_, BLKFLSBUF, 0);
 }

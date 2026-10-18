@@ -30,7 +30,6 @@
 #include <atomic>
 
 static QString L(const char* s) { return QString::fromStdString(T(s)); }
-static QString L(const std::string& s) { return QString::fromStdString(T(s)); }
 
 // ---------------------------------------------------------------- Windows options
 
