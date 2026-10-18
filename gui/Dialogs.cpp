@@ -294,7 +294,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     dev->setAlignment(Qt::AlignCenter);
     dev->setOpenExternalLinks(true);
     v->addWidget(dev);
-    auto* lic = new QLabel(L("Licence: GPL-3.0. Uses boot code from ms-sys and the UEFI:NTFS drivers from the Rufus project (Pete Batard)."));
+    auto* lic = new QLabel(L("Licence: GPL-3.0. Uses boot code from ms-sys and the UEFI:NTFS drivers by Pete Batard."));
     lic->setWordWrap(true);
     lic->setAlignment(Qt::AlignCenter);
     lic->setObjectName("Hint");
