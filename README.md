@@ -1,7 +1,7 @@
 <p align="center"><img src="resources/logo-light.png" alt="BootAz" height="96"></p>
 
 <p align="center"><b>Windows və Linux üçün yüklənə bilən USB disklər — Rufus kimi, amma həm Windows-da, həm də Linux-da</b><br>
-<sub>Developed By <a href="https://goshgarhasanov.github.io">Goshgar Hasanzadeh</a> · Azərbaycanda hazırlanıb · GPL-3.0</sub></p>
+<sub>Developed By <a href="https://goshgarhasanov.github.io">Goshgar Hasanov</a> · Azərbaycanda hazırlanıb<br>© 2026 Goshgar Hasanov · GPL-3.0</sub></p>
 
 ## Yükləmə / Download
 
@@ -143,4 +143,4 @@ non-destructive fake-capacity checks, read-back verification, Secure Boot certif
 drives at once, an official image downloader with SHA-256 checks, trying images in QEMU, and restoring drives.
 Start with `./run_gui.sh` / `run_gui.bat`, or `./run_cli.sh help`.
 
-Developed By **Goshgar Hasanzadeh** — https://goshgarhasanov.github.io
+Developed By **Goshgar Hasanov** — https://goshgarhasanov.github.io

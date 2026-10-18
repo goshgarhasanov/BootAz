@@ -87,7 +87,8 @@ endif()
 # ---- CLI ----
 set(CLI_SOURCES cli/main.cpp)
 if(WIN32)
-    list(APPEND CLI_SOURCES resources/bootaz.rc)
+    configure_file(${CMAKE_SOURCE_DIR}/resources/version.rc.in ${GEN_DIR}/version.rc @ONLY)
+    list(APPEND CLI_SOURCES resources/bootaz.rc ${GEN_DIR}/version.rc)
 endif()
 add_executable(bootaz-cli ${CLI_SOURCES})
 target_link_libraries(bootaz-cli PRIVATE bootaz_core)
@@ -105,7 +106,7 @@ if(BOOTAZ_GUI)
         gui/Dialogs.h gui/Dialogs.cpp gui/Downloads.h gui/Downloads.cpp
         gui/Widgets.h gui/Widgets.cpp gui/Theme.h gui/Theme.cpp gui/Brand.h gui/Brand.cpp resources/bootaz.qrc)
     if(WIN32)
-        list(APPEND GUI_SOURCES resources/bootaz-gui.rc)   # icon + "run as Administrator" manifest
+        list(APPEND GUI_SOURCES resources/bootaz-gui.rc ${GEN_DIR}/version.rc)   # icon, "run as Administrator", version
     endif()
     add_executable(BootAz ${GUI_SOURCES})
     target_include_directories(BootAz PRIVATE gui)

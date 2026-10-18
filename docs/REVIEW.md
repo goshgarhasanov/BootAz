@@ -1,6 +1,6 @@
 # BootAz 1.0 — kod, test, təhlükəsizlik və gələcək review
 
-Developed By Goshgar Hasanzadeh · 16 oktyabr 2026
+Developed By Goshgar Hasanov · 16 oktyabr 2026
 
 ## 1. Testlər
 

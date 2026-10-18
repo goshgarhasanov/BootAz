@@ -760,7 +760,7 @@ int cmdHash(const Args& a)
 void printHelp()
 {
     out(std::string(BOLD) + "BootAz " + BOOTAZ_VERSION + RESET + " — " + T("bootable USB drives from ISO and disk images") + "\n" +
-        DIM + "Developed By Goshgar Hasanzadeh · https://goshgarhasanov.github.io" + RESET + "\n\n" +
+        DIM + "Developed By Goshgar Hasanov · https://goshgarhasanov.github.io" + RESET + "\n\n" +
         T("Usage") + ":\n"
         "  bootaz-cli                               " + T("interactive wizard") + "\n"
         "  bootaz-cli devices [--all] [--json]      " + T("list USB drives (--all: internal drives too)") + "\n"
@@ -798,7 +798,7 @@ std::string ask(const std::string& prompt, const std::string& def = "")
 
 int wizard()
 {
-    out(std::string("\n") + BLUE + BOLD + "  BootAz" + RESET + "  " + T("bootable USB drives") + DIM + "   ·  Developed By Goshgar Hasanzadeh" + RESET + "\n\n");
+    out(std::string("\n") + BLUE + BOLD + "  BootAz" + RESET + "  " + T("bootable USB drives") + DIM + "   ·  Developed By Goshgar Hasanov" + RESET + "\n\n");
     try {
         std::vector<DriveInfo> drives = listDrives({});
         while (drives.empty()) {
@@ -895,7 +895,7 @@ int realMain(const std::vector<std::string>& argv)
     }
 
     if (a.has("--version")) {
-        out(std::string("BootAz ") + BOOTAZ_VERSION + "\nDeveloped By Goshgar Hasanzadeh\n");
+        out(std::string("BootAz ") + BOOTAZ_VERSION + "\nDeveloped By Goshgar Hasanov\nCopyright (C) 2026 Goshgar Hasanov. GPL-3.0\n");
         return kOk;
     }
     if (a.has("--help") || a.command == "help") {

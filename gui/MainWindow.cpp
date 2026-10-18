@@ -450,7 +450,7 @@ QWidget* MainWindow::buildActionBar()
     h->addWidget(startBtn_);
     v->addLayout(h);
     auto* foot = new QLabel(QString("Developed By <a href=\"https://goshgarhasanov.github.io\" style=\"color:%1; text-decoration:none; font-weight:600;\">"
-                                    "Goshgar Hasanzadeh</a>  ·  BootAz %2  ·  %3")
+                                    "Goshgar Hasanov</a>  ·  BootAz %2  ·  %3")
                                 .arg(theme::current().accent.name(), BOOTAZ_VERSION, L("Made in Azerbaijan")));
     foot->setObjectName("Footer");
     foot->setOpenExternalLinks(true);

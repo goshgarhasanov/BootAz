@@ -289,12 +289,12 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent)
     desc->setWordWrap(true);
     desc->setAlignment(Qt::AlignCenter);
     v->addWidget(desc);
-    auto* dev = new QLabel(QString("<b>Developed By Goshgar Hasanzadeh</b><br><a href=\"https://goshgarhasanov.github.io\" style=\"color:%1\">goshgarhasanov.github.io</a>")
+    auto* dev = new QLabel(QString("<b>Developed By Goshgar Hasanov</b><br><a href=\"https://goshgarhasanov.github.io\" style=\"color:%1\">goshgarhasanov.github.io</a>")
                                .arg(theme::current().accent.name()));
     dev->setAlignment(Qt::AlignCenter);
     dev->setOpenExternalLinks(true);
     v->addWidget(dev);
-    auto* lic = new QLabel(L("Licence: GPL-3.0. Uses boot code from ms-sys and the UEFI:NTFS drivers by Pete Batard."));
+    auto* lic = new QLabel(L("Copyright © 2026 Goshgar Hasanov. Licence: GPL-3.0. Uses boot code from ms-sys and the UEFI:NTFS drivers by Pete Batard."));
     lic->setWordWrap(true);
     lic->setAlignment(Qt::AlignCenter);
     lic->setObjectName("Hint");
